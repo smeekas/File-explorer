@@ -1,0 +1,12 @@
+html,
+body {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  height: 100%;
+}
+#root {
+  height: 100%;
+  font-family: "roboto", sans-serif;
+  overflow: hidden;
+}
