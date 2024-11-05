@@ -4,7 +4,8 @@ import DirectoryPage from "./Pages/Directory/DirectoryPage";
 import Layout from "./components/Layout/Layout";
 import { SearchContextProvider } from "./context/SearchContext";
 import { MenuContextProvider } from "./context/MenuContext";
-import Global from "./Opener/components/Global/Global";
+import { FILES_ROUTE } from "./utils/constants";
+import Monitor from "./components/Monitor/Monitor";
 
 function Router() {
   return (
@@ -12,13 +13,19 @@ function Router() {
       <SearchContextProvider>
         <MenuContextProvider>
           <Routes>
-            <Route path="/dirs-files" element={<Global />}>
-              <Route index path="*" element={<h1>dF</h1>} />
+            {/* <Route
+              path="/"
+              element={<Navigate to={`/${FILES_ROUTE}`} replace />}
+            /> */}
+            <Route path={`/`} element={<Layout />}>
+              <Route index path={`/`} element={<Home />} />
+              <Route
+                index
+                path={`/${FILES_ROUTE}/*`}
+                element={<DirectoryPage />}
+              />
             </Route>
-            <Route path="/" element={<Layout />}>
-              <Route index path="/" element={<Home />} />
-              <Route index path="/*" element={<DirectoryPage />} />
-            </Route>
+            <Route path="/monitor" element={<Monitor />} />
           </Routes>
         </MenuContextProvider>
       </SearchContextProvider>

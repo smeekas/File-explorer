@@ -13,6 +13,8 @@ export enum Events {
   FREE_SPACE_RESULT = "freeSpaceResult",
   GET_IMAGE = "getImage",
   GET_IMAGE_RESULT = "getImageResult",
+  PROCESS = "process",
+  PROCESS_RESULT = "processResult",
 }
 
 export const InvalidSearchKeys = [
@@ -22,3 +24,4 @@ export const InvalidSearchKeys = [
   "ArrowRight",
   "Tab",
 ];
+export const FILES_ROUTE = "dirs-list";

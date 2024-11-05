@@ -15,6 +15,7 @@ import useSelection from "../../hooks/useSelection";
 import { MouseEventHandler, useMemo } from "react";
 import { getFileSize } from "../../utils/getFileSize";
 import TableNameColumn from "../TableNameColumn/TableNameColumn";
+import { FILES_ROUTE } from "../../utils/constants";
 
 type DataTableProps = {
   data: DirectoryInfo | null;
@@ -92,7 +93,7 @@ function DataTable({ data }: DataTableProps) {
   const navigate = useNavigate();
   const onRowDbClick = (isFile: boolean, path: string) => {
     if (!isFile) {
-      navigate(path);
+      navigate(`/${FILES_ROUTE}${path}`);
     } else {
       window.ipcRenderer.send("open", path);
     }

@@ -15,6 +15,8 @@ var Events = /* @__PURE__ */ ((Events2) => {
   Events2["FREE_SPACE_RESULT"] = "freeSpaceResult";
   Events2["GET_IMAGE"] = "getImage";
   Events2["GET_IMAGE_RESULT"] = "getImageResult";
+  Events2["PROCESS"] = "process";
+  Events2["PROCESS_RESULT"] = "processResult";
   return Events2;
 })(Events || {});
 electron.contextBridge.exposeInMainWorld("ipcRenderer", {

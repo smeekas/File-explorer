@@ -108,6 +108,8 @@ var Events = /* @__PURE__ */ ((Events2) => {
   Events2["FREE_SPACE_RESULT"] = "freeSpaceResult";
   Events2["GET_IMAGE"] = "getImage";
   Events2["GET_IMAGE_RESULT"] = "getImageResult";
+  Events2["PROCESS"] = "process";
+  Events2["PROCESS_RESULT"] = "processResult";
   return Events2;
 })(Events || {});
 var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
@@ -575,10 +577,43 @@ electron.ipcMain.on(Events.GET_HOME_DIR, () => {
 electron.ipcMain.on(Events.FREE_SPACE, async () => {
   const data = await fs.statfs(os.homedir());
   const response = {
-    free: data.bavail * data.bsize / Math.pow(1e3, 2),
-    used: (data.blocks - data.bavail) * data.bsize / Math.pow(1e3, 2)
+    free: data.bavail * data.bsize / Math.pow(1e3, 3),
+    used: (data.blocks - data.bavail) * data.bsize / Math.pow(1e3, 3)
   };
   win == null ? void 0 : win.webContents.send(Events.FREE_SPACE_RESULT, response);
+});
+function getCPUInfo() {
+  const cpus = os.cpus();
+  let totalUser = 0;
+  let totalNice = 0;
+  let totalSys = 0;
+  let totalIdle = 0;
+  let totalIrq = 0;
+  cpus.forEach((cpu) => {
+    totalUser += cpu.times.user;
+    totalNice += cpu.times.nice;
+    totalSys += cpu.times.sys;
+    totalIdle += cpu.times.idle;
+    totalIrq += cpu.times.irq;
+  });
+  return { totalUser, totalNice, totalSys, totalIdle, totalIrq };
+}
+electron.ipcMain.on(Events.PROCESS, () => {
+  let prev = getCPUInfo();
+  setInterval(() => {
+    const curr = getCPUInfo();
+    const user = curr.totalUser - prev.totalUser;
+    const nice = curr.totalNice - prev.totalNice;
+    const sys = curr.totalSys - prev.totalSys;
+    const idle = curr.totalIdle - prev.totalIdle;
+    const irq = curr.totalIrq - prev.totalIrq;
+    const total = user + nice + sys + idle + irq;
+    win == null ? void 0 : win.webContents.send(Events.PROCESS_RESULT, {
+      usage: ((user + sys + irq + nice) / total * 100).toFixed(2),
+      idle: (idle / total * 100).toFixed(2)
+    });
+    prev = curr;
+  }, 1e3);
 });
 electron.ipcMain.on("open", (_, path2) => {
   electron.shell.openPath(path2);

@@ -5,6 +5,7 @@ import HomeIcon from "@mui/icons-material/Home";
 import { Skeleton } from "@mui/material";
 import { PathType } from "../../types/currentPath.types";
 import { CurrentPathStyled, LinkStyled } from "./CurrentPath.styled";
+import { FILES_ROUTE } from "../../utils/constants";
 
 function CurrentPath() {
   const { pathname } = useLocation();
@@ -12,12 +13,11 @@ function CurrentPath() {
   const { homeDir, loading } = useHomeDir();
 
   const paths: PathType[] = [];
-
   if (loading) return <Skeleton />;
-  if (pathname === "/") {
+  if (pathname === `/`) {
     paths.push({ label: <HomeIcon />, path: "/" });
   } else {
-    const splitted = pathname.split(homeDir);
+    const splitted = pathname.slice(FILES_ROUTE.length + 1).split(homeDir);
     splitted.shift();
     const ans = splitted[0]
       .split("/")
@@ -41,10 +41,10 @@ function CurrentPath() {
       {paths.map((pathItem) => {
         return (
           <LinkStyled
-            href={pathItem.path}
+            href={`/${FILES_ROUTE}${pathItem.path}`}
             onClick={(e) => {
               e.preventDefault();
-              navigate(pathItem.path);
+              navigate(`/${FILES_ROUTE}${pathItem.path}`);
             }}
             key={pathItem.path}
             underline="hover"
