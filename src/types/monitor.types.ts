@@ -1,4 +1,4 @@
-export type CPUUsage = {
+export type Usage = {
   usage: number;
-  idle: number;
+  free: number;
 };

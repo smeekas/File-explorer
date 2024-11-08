@@ -4,6 +4,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { HeaderStyled } from "./Header.styled";
 import SearchDir from "../SearchDir/SearchDir";
 import { useNavigate } from "react-router-dom";
+import useCheckMonitor from "../../hooks/useCheckMonitor";
 
 function Header() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ function Header() {
   const goForward = () => {
     navigate(1);
   };
+  const isMonitor = useCheckMonitor();
   return (
     <HeaderStyled>
       <ButtonGroup size="small">
@@ -28,7 +30,7 @@ function Header() {
         </Tooltip>
       </ButtonGroup>
 
-      <SearchDir />
+      {!isMonitor && <SearchDir />}
     </HeaderStyled>
   );
 }

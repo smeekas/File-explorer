@@ -15,6 +15,8 @@ export enum Events {
   GET_IMAGE_RESULT = "getImageResult",
   PROCESS = "process",
   PROCESS_RESULT = "processResult",
+  MEMORY = "memory",
+  MEMORY_RESULT = "memoryResult",
 }
 
 export const InvalidSearchKeys = [

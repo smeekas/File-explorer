@@ -24,8 +24,8 @@ function Router() {
                 path={`/${FILES_ROUTE}/*`}
                 element={<DirectoryPage />}
               />
-            </Route>
             <Route path="/monitor" element={<Monitor />} />
+            </Route>
           </Routes>
         </MenuContextProvider>
       </SearchContextProvider>

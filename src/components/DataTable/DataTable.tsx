@@ -12,10 +12,19 @@ import { DataTableStyled } from "./DataTable.styled";
 import { useSearchContext } from "../../context/SearchContext";
 import { useMenuContext } from "../../context/MenuContext";
 import useSelection from "../../hooks/useSelection";
-import { MouseEventHandler, useMemo } from "react";
+import { MouseEventHandler, useMemo, useState } from "react";
 import { getFileSize } from "../../utils/getFileSize";
 import TableNameColumn from "../TableNameColumn/TableNameColumn";
 import { FILES_ROUTE } from "../../utils/constants";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Menu,
+  MenuItem,
+} from "@mui/material";
+import useModal from "../../hooks/useModal";
+import DirAnalysis from "../DirAnalysis/DirAnalysis";
 
 type DataTableProps = {
   data: DirectoryInfo | null;
@@ -48,6 +57,12 @@ function DataTable({ data }: DataTableProps) {
   const { search } = useSearchContext();
   const { hiddenFiles } = useMenuContext();
   const { addToSelection, selected } = useSelection();
+  const [contextMenu, setContextMenu] = useState<{
+    mouseX: number;
+    mouseY: number;
+    path: string;
+  } | null>(null);
+  const { closeModal, open, openModal } = useModal<string>();
   const gridData: GridDataRow[] = useMemo(
     () =>
       (data?.items
@@ -111,6 +126,29 @@ function DataTable({ data }: DataTableProps) {
       addToSelection(target.dataset.path);
     }
   };
+  const handleContextMenu = (event: React.MouseEvent, path: string) => {
+    event.preventDefault();
+    addToSelection(path);
+    setContextMenu(
+      contextMenu === null
+        ? {
+            mouseX: event.clientX + 2,
+            mouseY: event.clientY - 6,
+            path,
+          }
+        : null
+    );
+  };
+  const handleClose = () => {
+    setContextMenu(null);
+  };
+
+  const onAnalyze = () => {
+    if (contextMenu) {
+      openModal(contextMenu.path);
+      handleClose();
+    }
+  };
   return (
     <DataTableStyled>
       <table>
@@ -141,6 +179,9 @@ function DataTable({ data }: DataTableProps) {
               onDoubleClick={() =>
                 onRowDbClick(row.original.isFile, row.original.path)
               }
+              onContextMenu={(e) =>
+                !row.original.isFile && handleContextMenu(e, row.original.path)
+              }
             >
               {row.getVisibleCells().map((cell) => (
                 <td key={cell.id} data-path={row.original.path}>
@@ -151,6 +192,22 @@ function DataTable({ data }: DataTableProps) {
           ))}
         </tbody>
       </table>
+      <Menu
+        open={contextMenu !== null}
+        onClose={handleClose}
+        anchorReference="anchorPosition"
+        anchorPosition={
+          contextMenu !== null
+            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+            : undefined
+        }
+      >
+        <MenuItem onClick={onAnalyze}>analyze</MenuItem>
+      </Menu>
+      <Dialog open={!!open} onClose={closeModal}>
+        <DialogTitle>{open}</DialogTitle>
+        <DialogContent>{open && <DirAnalysis dirPath={open} />}</DialogContent>
+      </Dialog>
     </DataTableStyled>
   );
 }

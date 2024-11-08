@@ -1,14 +1,15 @@
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import path from "node:path";
 import fs from "fs/promises";
-import mime from "mime/lite";
-
+import mime from "mime";
+import { Worker } from "worker_threads";
 import os from "os";
 import { Events } from "../src/utils/constants";
 import { DirectoryInfo, MyDir, MyFile } from "../src/types/directories";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { FreeSpaceResult } from "../src/types/freeSpace.types";
+import { DirInfo } from "../src/types/analysis.types";
 dayjs.extend(relativeTime);
 
 // The built directory structure
@@ -38,6 +39,7 @@ function createWindow() {
     icon: path.join(process.env.VITE_PUBLIC, "explorer.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
+      nodeIntegrationInWorker: true,
     },
     minWidth: 250,
     minHeight: 250,
@@ -62,6 +64,7 @@ function createWindow() {
       parent: win ?? undefined,
       webPreferences: {
         nodeIntegration: true,
+        nodeIntegrationInWorker: true,
         contextIsolation: false,
       },
     });
@@ -208,27 +211,148 @@ function getCPUInfo() {
   return { totalUser, totalNice, totalSys, totalIdle, totalIrq };
 }
 
+let prev = getCPUInfo();
 ipcMain.on(Events.PROCESS, () => {
-  let prev = getCPUInfo();
-  setInterval(() => {
-    const curr = getCPUInfo();
-    const user = curr.totalUser - prev.totalUser;
-    const nice = curr.totalNice - prev.totalNice;
-    const sys = curr.totalSys - prev.totalSys;
-    const idle = curr.totalIdle - prev.totalIdle;
-    const irq = curr.totalIrq - prev.totalIrq;
+  // setInterval(() => {
+  const curr = getCPUInfo();
+  const user = curr.totalUser - prev.totalUser;
+  const nice = curr.totalNice - prev.totalNice;
+  const sys = curr.totalSys - prev.totalSys;
+  const idle = curr.totalIdle - prev.totalIdle;
+  const irq = curr.totalIrq - prev.totalIrq;
 
-    const total = user + nice + sys + idle + irq;
+  const total = user + nice + sys + idle + irq;
 
-    win?.webContents.send(Events.PROCESS_RESULT, {
-      usage: (((user + sys + irq + nice) / total) * 100).toFixed(2),
-      idle: ((idle / total) * 100).toFixed(2),
-    });
-    prev = curr;
-  }, 1000);
+  win?.webContents.send(Events.PROCESS_RESULT, {
+    usage: (((user + sys + irq + nice) / total) * 100).toFixed(2),
+    idle: ((idle / total) * 100).toFixed(2),
+  });
+  prev = curr;
+  // }, 1000);
 });
+ipcMain.on(Events.MEMORY, () => {
+  const totalMemory = os.totalmem();
+  const freeMemory = os.freemem();
+  const usedMemory = totalMemory - freeMemory;
+
+  // // Convert to GB for readability
+  // const total = (totalMemory / (1024 * 1024 * 1024)).toFixed(2);
+  // const used = (usedMemory / (1024 * 1024 * 1024)).toFixed(2);
+  // const free = (freeMemory / (1024 * 1024 * 1024)).toFixed(2);
+
+  win?.webContents.send(Events.MEMORY_RESULT, {
+    usage: +((usedMemory / totalMemory) * 100).toFixed(2),
+    idle: +((freeMemory / totalMemory) * 100).toFixed(2),
+  });
+});
+ipcMain.on(Events.START_DIR_ANALYSIS, async (_, dirPath: string) => {
+  const dira = DirAnalyzer.getInstance(dirPath);
+  if (!dira.running) {
+    const date = Date.now();
+    await dira.analyze();
+    console.log((Date.now() - date) / 1000);
+    win?.webContents.send(Events.DIR_ANALYSIS_RESULT, dira.stats);
+  }
+});
+
 ipcMain.on("open", (_, path: string) => {
   shell.openPath(path);
 });
 
 app.whenReady().then(createWindow);
+
+type ProgressCb = (progress: number) => void;
+class DirAnalyzer {
+  threads: number;
+  path: string;
+  stats: DirInfo;
+  threadResult: DirInfo[];
+  running: boolean;
+  static getInstance(path: string) {
+    return new DirAnalyzer(path);
+  }
+  progressCb: ProgressCb | null;
+  private constructor(path: string) {
+    this.threads = os.availableParallelism();
+    this.path = path;
+    this.progressCb = null;
+    this.stats = this.getInitialStats();
+    this.threadResult = [];
+    this.running = false;
+  }
+  async analyze() {
+    this.running = true;
+    const topLevelDirs = await this._getTopLevelDirs(this.path);
+    console.log(topLevelDirs);
+    const promises: Promise<DirInfo>[] = [];
+    for (let i = 0; i < this.threads; i++) {
+      const worker = new Worker(path.join(__dirname, "work.js"));
+      const promise = new Promise<DirInfo>((resolve, reject) => {
+        worker.on("message", (event) => {
+          if (event.err) {
+            reject(event.err);
+          } else {
+            resolve(event.result);
+          }
+        });
+        worker.postMessage({
+          dirPaths: topLevelDirs,
+          id: i,
+          threads: this.threads,
+        });
+      });
+      promises.push(promise);
+    }
+    await Promise.all(promises)
+      .then((result) => {
+        result.forEach((item) => {
+          this.stats.images += item.images;
+          this.stats.videos += item.videos;
+          this.stats.pdf += item.pdf;
+          this.stats.text += item.text;
+          this.stats.other += item.other;
+          this.stats.size += item.size;
+        });
+      })
+      .catch(console.log);
+    this.running = false;
+  }
+  async _getTopLevelDirs(dirPath: string) {
+    const dirs = await fs.readdir(dirPath, { withFileTypes: true });
+    dirs
+      .filter((dirItem) => dirItem.isFile())
+      .forEach((dirItem) => {
+        const type = mime.getType(path.join(dirPath, dirItem.name));
+        const isImage = type?.startsWith("image");
+        const isVideo = type?.startsWith("video");
+        const isPdf = type == "application/pdf";
+        const isText = type?.startsWith("text");
+        if (isImage) this.stats.images++;
+        else if (isVideo) this.stats.videos++;
+        else if (isPdf) this.stats.pdf++;
+        else if (isText) this.stats.text++;
+        else this.stats.other++;
+        fs.lstat(path.join(dirPath, dirItem.name)).then(
+          (fileInfo) => (this.stats.size += fileInfo.size)
+        );
+      });
+    return dirs
+      .filter((dirItem) => dirItem.isDirectory() && !dirItem.isSymbolicLink())
+      .map((dirItem) => path.join(dirPath, dirItem.name));
+  }
+
+  inform(cb: ProgressCb) {
+    this.progressCb = cb;
+  }
+  getInitialStats() {
+    return {
+      audio: 0,
+      videos: 0,
+      images: 0,
+      text: 0,
+      pdf: 0,
+      other: 0,
+      size: 0,
+    };
+  }
+}
