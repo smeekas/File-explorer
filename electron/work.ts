@@ -3,7 +3,8 @@ import { DirInfo } from "../src/types/analysis.types";
 import fs from "fs/promises";
 import { parentPort } from "worker_threads";
 import path from "path";
-import mime from "mime";
+import getFileType from "../src/utils/getFileType";
+import combineTwo from "../src/utils/combineTwo";
 const result: DirInfo = {
   images: 0,
   other: 0,
@@ -11,32 +12,21 @@ const result: DirInfo = {
   text: 0,
   videos: 0,
   size: 0,
+  application: 0,
+  audio: 0,
+  compressed: 0,
 };
 const reset = () => {
-  result.images = 0;
-  result.other = 0;
-  result.pdf = 0;
-  result.text = 0;
-  result.videos = 0;
-  result.size = 0;
+  Object.keys(result).forEach(
+    (keyItem) => (result[keyItem as keyof DirInfo] = 0)
+  );
 };
 const processDirectory = async (dirPath: string) => {
   const dirInfo = await fs.readdir(dirPath, { withFileTypes: true });
   for (const child of dirInfo) {
     if (child.isFile()) {
-      const type = mime.getType(path.join(dirPath, child.name));
-      const isImage = type?.startsWith("image");
-      const isVideo = type?.startsWith("video");
-      const isPdf = type == "application/pdf";
-      const isText = type?.startsWith("text");
-      if (isImage) result.images++;
-      else if (isVideo) result.videos++;
-      else if (isPdf) result.pdf++;
-      else if (isText) result.text++;
-      else result.other++;
-      const fileInfo = await fs.lstat(path.join(dirPath, child.name));
-      result.size += fileInfo.size;
-    } else if (!child.isSymbolicLink() && child.isDirectory()) {
+      combineTwo(result, getFileType(path.join(dirPath, child.name)));
+    } else if (child.isDirectory() && !child.isSymbolicLink()) {
       await processDirectory(path.join(dirPath, child.name));
     } else {
       result.other++;
@@ -49,7 +39,6 @@ const startIteration = async (
   endIndex: number
 ) => {
   for (let i = startIndex; i <= endIndex; i++) {
-
     await processDirectory(paths[i]);
   }
 };

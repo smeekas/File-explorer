@@ -10,6 +10,8 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { FreeSpaceResult } from "../src/types/freeSpace.types";
 import { DirInfo } from "../src/types/analysis.types";
+import combineTwo from "../src/utils/combineTwo";
+import getFileType from "../src/utils/getFileType";
 dayjs.extend(relativeTime);
 
 // The built directory structure
@@ -247,11 +249,15 @@ ipcMain.on(Events.MEMORY, () => {
 });
 ipcMain.on(Events.START_DIR_ANALYSIS, async (_, dirPath: string) => {
   const dira = DirAnalyzer.getInstance(dirPath);
+  fs.statfs(dirPath).then((res) => console.log(res));
   if (!dira.running) {
     const date = Date.now();
     await dira.analyze();
-    console.log((Date.now() - date) / 1000);
-    win?.webContents.send(Events.DIR_ANALYSIS_RESULT, dira.stats);
+
+    win?.webContents.send(Events.DIR_ANALYSIS_RESULT, {
+      ...dira.stats,
+      time: (Date.now() - date) / 1000,
+    });
   }
 });
 
@@ -283,8 +289,8 @@ class DirAnalyzer {
   async analyze() {
     this.running = true;
     const topLevelDirs = await this._getTopLevelDirs(this.path);
-    console.log(topLevelDirs);
     const promises: Promise<DirInfo>[] = [];
+
     for (let i = 0; i < this.threads; i++) {
       const worker = new Worker(path.join(__dirname, "work.js"));
       const promise = new Promise<DirInfo>((resolve, reject) => {
@@ -306,12 +312,7 @@ class DirAnalyzer {
     await Promise.all(promises)
       .then((result) => {
         result.forEach((item) => {
-          this.stats.images += item.images;
-          this.stats.videos += item.videos;
-          this.stats.pdf += item.pdf;
-          this.stats.text += item.text;
-          this.stats.other += item.other;
-          this.stats.size += item.size;
+          combineTwo(this.stats, item);
         });
       })
       .catch(console.log);
@@ -319,23 +320,13 @@ class DirAnalyzer {
   }
   async _getTopLevelDirs(dirPath: string) {
     const dirs = await fs.readdir(dirPath, { withFileTypes: true });
-    dirs
-      .filter((dirItem) => dirItem.isFile())
-      .forEach((dirItem) => {
-        const type = mime.getType(path.join(dirPath, dirItem.name));
-        const isImage = type?.startsWith("image");
-        const isVideo = type?.startsWith("video");
-        const isPdf = type == "application/pdf";
-        const isText = type?.startsWith("text");
-        if (isImage) this.stats.images++;
-        else if (isVideo) this.stats.videos++;
-        else if (isPdf) this.stats.pdf++;
-        else if (isText) this.stats.text++;
-        else this.stats.other++;
-        fs.lstat(path.join(dirPath, dirItem.name)).then(
-          (fileInfo) => (this.stats.size += fileInfo.size)
-        );
-      });
+    const allFiles = dirs.filter((dirItem) => dirItem.isFile());
+
+    for (const file of allFiles) {
+      const result = getFileType(path.join(dirPath, file.name));
+      combineTwo(this.stats, result);
+    }
+
     return dirs
       .filter((dirItem) => dirItem.isDirectory() && !dirItem.isSymbolicLink())
       .map((dirItem) => path.join(dirPath, dirItem.name));
@@ -344,7 +335,7 @@ class DirAnalyzer {
   inform(cb: ProgressCb) {
     this.progressCb = cb;
   }
-  getInitialStats() {
+  getInitialStats(): DirInfo {
     return {
       audio: 0,
       videos: 0,
@@ -353,6 +344,8 @@ class DirAnalyzer {
       pdf: 0,
       other: 0,
       size: 0,
+      application: 0,
+      compressed: 0,
     };
   }
 }
