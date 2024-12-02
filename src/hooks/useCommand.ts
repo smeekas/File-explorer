@@ -30,7 +30,6 @@ function useCommand<T>({
   }, [loaded, resultKey]);
   const sendRequest = useCallback(() => {
     window.ipcRenderer.send(eventKey, reqBody);
-    setLoading(true);
   }, [eventKey, reqBody]);
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;

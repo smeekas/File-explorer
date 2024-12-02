@@ -6,6 +6,7 @@ import { MonitorStyled } from "./Monitor.styled";
 function Monitor() {
   const { series, loading } = useCpuUsage();
   const { series: memorySeries, loading: memoryLoading } = useMemoryUsage();
+  console.log(memoryLoading, memorySeries);
   return (
     <MonitorStyled>
       <RealTimeChart

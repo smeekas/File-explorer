@@ -1,10 +1,9 @@
 import { DirInfo } from "../src/types/analysis.types";
-// import fss from "fs";
-import fs from "fs/promises";
 import { parentPort } from "worker_threads";
 import path from "path";
 import getFileType from "../src/utils/getFileType";
 import combineTwo from "../src/utils/combineTwo";
+import { getDirsWithReadAccess, isDirectory } from "./electronUtils";
 const result: DirInfo = {
   images: 0,
   other: 0,
@@ -22,11 +21,11 @@ const reset = () => {
   );
 };
 const processDirectory = async (dirPath: string) => {
-  const dirInfo = await fs.readdir(dirPath, { withFileTypes: true });
+  const dirInfo = await getDirsWithReadAccess(dirPath);
   for (const child of dirInfo) {
     if (child.isFile()) {
       combineTwo(result, getFileType(path.join(dirPath, child.name)));
-    } else if (child.isDirectory() && !child.isSymbolicLink()) {
+    } else if (isDirectory(child)) {
       await processDirectory(path.join(dirPath, child.name));
     } else {
       result.other++;

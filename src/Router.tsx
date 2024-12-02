@@ -6,29 +6,32 @@ import { SearchContextProvider } from "./context/SearchContext";
 import { MenuContextProvider } from "./context/MenuContext";
 import { FILES_ROUTE } from "./utils/constants";
 import Monitor from "./components/Monitor/Monitor";
+import ElectronError from "./context/ElectronError";
 
 function Router() {
   return (
     <HashRouter>
-      <SearchContextProvider>
-        <MenuContextProvider>
-          <Routes>
-            {/* <Route
+      <ElectronError>
+        <SearchContextProvider>
+          <MenuContextProvider>
+            <Routes>
+              {/* <Route
               path="/"
               element={<Navigate to={`/${FILES_ROUTE}`} replace />}
             /> */}
-            <Route path={`/`} element={<Layout />}>
-              <Route index path={`/`} element={<Home />} />
-              <Route
-                index
-                path={`/${FILES_ROUTE}/*`}
-                element={<DirectoryPage />}
-              />
-            <Route path="/monitor" element={<Monitor />} />
-            </Route>
-          </Routes>
-        </MenuContextProvider>
-      </SearchContextProvider>
+              <Route path={`/`} element={<Layout />}>
+                <Route index path={`/`} element={<Home />} />
+                <Route
+                  index
+                  path={`/${FILES_ROUTE}/*`}
+                  element={<DirectoryPage />}
+                />
+                <Route path="/monitor" element={<Monitor />} />
+              </Route>
+            </Routes>
+          </MenuContextProvider>
+        </SearchContextProvider>
+      </ElectronError>
     </HashRouter>
   );
 }

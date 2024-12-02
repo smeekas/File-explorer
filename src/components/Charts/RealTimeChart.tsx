@@ -1,6 +1,7 @@
 import Apex from "react-apexcharts";
 import { ChartContainerStyled } from "./ChartContainer.styled";
 import { LinearProgress } from "@mui/material";
+import React from "react";
 type RealTimeChartProps = {
   yaxisName: string;
   title: string;
@@ -69,4 +70,4 @@ function RealTimeChart({
   );
 }
 
-export default RealTimeChart;
+export default React.memo(RealTimeChart);
