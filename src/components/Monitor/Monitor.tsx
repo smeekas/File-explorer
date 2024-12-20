@@ -1,26 +1,25 @@
-import RealTimeChart from "../Charts/RealTimeChart";
-import useCpuUsage from "../../hooks/useCpuUsage";
-import useMemoryUsage from "../../hooks/useMemoryUsage";
-import { MonitorStyled } from "./Monitor.styled";
+import RealTimeChart from '../Charts/RealTimeChart';
+import useCpuUsage from '../../hooks/useCpuUsage';
+import useMemoryUsage from '../../hooks/useMemoryUsage';
+import { MonitorStyled } from './Monitor.styled';
 
 function Monitor() {
   const { series, loading } = useCpuUsage();
   const { series: memorySeries, loading: memoryLoading } = useMemoryUsage();
-  console.log(memoryLoading, memorySeries);
   return (
     <MonitorStyled>
       <RealTimeChart
-        yaxisName="Usage"
+        yaxisName='Usage'
         series={series}
-        loading={loading || series.length < 5}
-        title="CPU Usage (updated every 2 second)"
+        loading={loading}
+        title='CPU Usage (updated every 2 second)'
       />
 
       <RealTimeChart
-        yaxisName="Usage"
+        yaxisName='Usage'
         series={memorySeries}
-        loading={memoryLoading || memorySeries.length < 5}
-        title="Memory Usage (updated every 2 second)"
+        loading={memoryLoading}
+        title='Memory Usage (updated every 2 second)'
       />
     </MonitorStyled>
   );

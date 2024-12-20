@@ -4,4 +4,8 @@ export const ChartContainerStyled = styled.div`
     margin: 0 1rem;
   background-color: var(--color-neutral-100);
   flex: 1;
+
+  .real-time{
+    height: 100%;
+  }
 `;
