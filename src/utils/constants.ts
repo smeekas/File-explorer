@@ -17,6 +17,8 @@ export enum Events {
   PROCESS_RESULT = "processResult",
   MEMORY = "memory",
   MEMORY_RESULT = "memoryResult",
+  ERROR = "error",
+  ERROR_RESULT = "errorResult",
 }
 
 export const InvalidSearchKeys = [

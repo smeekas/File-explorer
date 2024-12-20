@@ -3,35 +3,31 @@ import { DirInfo } from "../types/analysis.types";
 import fs from "fs/promises";
 
 import path from "path";
-import mime from "mime";
+import combineTwo from "./combineTwo";
+import getFileType from "./getFileType";
 const result: DirInfo = {
   images: 0,
   other: 0,
   pdf: 0,
   text: 0,
   videos: 0,
+  application: 0,
+  audio: 0,
+  compressed: 0,
+  size: 0,
 };
 const reset = () => {
-  result.images = 0;
-  result.other = 0;
-  result.pdf = 0;
-  result.text = 0;
-  result.videos = 0;
+  Object.keys(result).forEach((resetKeys) => {
+    if (resetKeys in result) {
+      result[resetKeys as keyof DirInfo] = 0;
+    }
+  });
 };
 const processDirectory = async (dirPath: string) => {
   const dirInfo = await fs.readdir(dirPath, { withFileTypes: true });
   for (const child of dirInfo) {
     if (child.isFile()) {
-      const type = mime.getType(path.join(dirPath, child.name));
-      const isImage = type?.startsWith("image");
-      const isVideo = type?.startsWith("video");
-      const isPdf = type == "application/pdf";
-      const isText = type?.startsWith("text");
-      if (isImage) result.images++;
-      else if (isVideo) result.videos++;
-      else if (isPdf) result.pdf++;
-      else if (isText) result.text++;
-      else result.other++;
+      combineTwo(result, getFileType(path.join(child.path, child.name)));
     } else {
       await processDirectory(path.join(dirPath, child.name));
     }

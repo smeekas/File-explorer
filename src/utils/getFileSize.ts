@@ -1,5 +1,5 @@
 export const getFileSize = (size: number) => {
-  if (size < 1024) {
+  if (size < 1000) {
     return `${size} Bytes`;
   }
   size /= 1000;

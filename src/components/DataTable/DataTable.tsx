@@ -204,7 +204,7 @@ function DataTable({ data }: DataTableProps) {
       >
         <MenuItem onClick={onAnalyze}>analyze</MenuItem>
       </Menu>
-      <Dialog open={!!open} onClose={closeModal}>
+      <Dialog open={!!open} onClose={closeModal} fullWidth>
         <DialogTitle>{open}</DialogTitle>
         <DialogContent>{open && <DirAnalysis dirPath={open} />}</DialogContent>
       </Dialog>

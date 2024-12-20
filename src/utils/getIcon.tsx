@@ -1,4 +1,3 @@
-import mime from "mime";
 import FolderIcon from "../icons/FolderIcon";
 import ImageIcon from "../icons/ImageIcon";
 import VideoIcon from "../icons/VideoIcon";
@@ -7,25 +6,27 @@ import PdfIcon from "../icons/PdfIcon";
 import CompressedIcon from "../icons/CompressedIcon";
 import FileIcon from "../icons/FileIcon";
 import TextIcon from "../icons/TextIcon";
+import {
+  audioExtensions,
+  compressedExtensions,
+  imageExtensions,
+  textExtensions,
+  videoExtensions,
+} from "./fileExts";
 
 export const getIcon = (path: string, isFile: boolean) => {
   if (!isFile) {
     return <FolderIcon />;
   } else {
-    const type = mime.getType(path);
-    const isImage = type?.startsWith("image");
-    const isVideo = type?.startsWith("video");
-    const isAudio = type?.startsWith("audio");
-    const isPdf = type == "application/pdf";
-    const isText = type?.startsWith("text");
+    const ext = path.split(".").pop();
+    if (!ext) return <FileIcon />;
+    const isImage = imageExtensions.has(ext);
+    const isVideo = videoExtensions.has(ext);
+    const isAudio = audioExtensions.has(ext);
+    const isPdf = ext == "pdf";
+    const isText = textExtensions.has(ext);
 
-    const isCompressed =
-      type === "application/vnd.rar" ||
-      type === "application/x-rar-compressed" ||
-      type === "application/octet-stream" ||
-      type === "application/zip" ||
-      type === "application/x-zip-compressed" ||
-      type === "multipart/x-zip";
+    const isCompressed = compressedExtensions.has(ext);
     if (isImage) return <ImageIcon />;
     if (isVideo) return <VideoIcon />;
     if (isAudio) return <AudioIcon />;
